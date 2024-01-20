@@ -2,125 +2,109 @@ const fs = require('fs');
 const path = require('path');
 const stream = require('stream');
 
-const pathProject = path.join(__dirname, 'project-dist');
-const pathAssetsFrom = path.join(__dirname, 'assets');
-const pathAssetsTo = path.join(__dirname, 'project-dist', 'assets');
-const pathForStyle = path.join(__dirname, 'styles');
-const pathStyle = path.join(__dirname, 'project-dist', 'style.css');
-const pathHtmlFrom = path.join(__dirname, 'template.html');
-const pathHtmlTo = path.join(__dirname, 'project-dist', 'index.html');
-const pathComponents = path.join(__dirname, 'components');
+const pathProject = path.resolve(__dirname, 'project-dist');
+const pathAssetsFrom = path.resolve(__dirname, 'assets');
+const pathAssetsTo = path.resolve(__dirname, 'project-dist', 'assets');
+const pathForStyle = path.resolve(__dirname, 'styles');
+const pathStyle = path.resolve(__dirname, 'project-dist', 'style.css');
+const pathHtmlFrom = path.resolve(__dirname, 'template.html');
+const pathHtmlTo = path.resolve(__dirname, 'project-dist', 'index.html');
+const pathComponents = path.resolve(__dirname, 'components');
 
-function project(
-  toProject,
-  forStyle,
-  toStyle,
-  fromAssets,
-  toAssets,
-  fromHTML,
-  toHTML,
-  forComponents,
-) {
-  fs.access(toProject, (err) => {
+function project() {
+  fs.access(pathProject, (err) => {
     if (err) makeDirectory();
-    fs.rm(toProject, { recursive: true }, (err) => {
-      if (err) throw err;
-      makeDirectory();
-    });
-  });
-
-  function makeDirectory() {
-    fs.mkdir(toProject, (err) => {
-      if (err) throw err;
-      addStyle();
-      copyDir(fromAssets, toAssets);
-      getComponent();
-    });
-  }
-
-  function getComponent() {
-    fs.readdir(forComponents, (err, fileNames) => {
-      if (err) throw err;
-      const components = {};
-      fileNames.forEach((fileName) => {
-        const index = fileName.indexOf('.');
-        const nameFile = fileName.slice(0, index);
-        fs.readFile(path.join(forComponents, fileName), (err, file) => {
-          if (err) throw err;
-          components[nameFile] = file;
-          if (Object.keys(components).length === fileNames.length) {
-            addHTML(components);
-          }
-        });
+    else {
+      fs.rm(pathProject, { recursive: true }, (err) => {
+        if (err) throw err;
+        makeDirectory();
       });
-    });
-  }
+    }
+  });
+}
 
-  function addHTML(components) {
-    const readStream = fs.createReadStream(fromHTML);
-    const writeStream = fs.createWriteStream(toHTML);
-    const transformHtml = new stream.Transform({
-      transform(chunk, encoding, cb) {
-        const transformForHtml = chunk
-          .toString()
-          .replace(/{{(\w+)}}/g, (_, component) => {
-            return components[component];
-          });
-        cb(null, transformForHtml);
-      },
-    });
-    readStream.pipe(transformHtml).pipe(writeStream);
-  }
+function makeDirectory() {
+  fs.mkdir(pathProject, (err) => {
+    if (err) throw err;
+    addStyle();
+    copyDir(pathAssetsFrom, pathAssetsTo);
+    getComponent();
+  });
+}
 
-  function addStyle() {
-    fs.readdir(forStyle, { withFileTypes: true }, (err, fileNames) => {
-      if (err) throw err;
-      const writeStream = fs.createWriteStream(toStyle);
-      fileNames.forEach((fileName) => {
-        const index = fileName.name.indexOf('.');
-        const extentionFile = fileName.name.slice(index + 1);
-        if (fileName.isFile() && extentionFile === 'css') {
-          const readStream = fs.createReadStream(
-            path.join(forStyle, fileName.name),
-          );
-          readStream.pipe(writeStream);
+function getComponent() {
+  fs.readdir(pathComponents, (err, fileNames) => {
+    if (err) throw err;
+    const components = {};
+    fileNames.forEach((fileName) => {
+      const index = fileName.indexOf('.');
+      const nameFile = fileName.slice(0, index);
+      fs.readFile(path.resolve(pathComponents, fileName), (err, file) => {
+        if (err) throw err;
+        components[nameFile] = file;
+        if (Object.keys(components).length === fileNames.length) {
+          addHTML(components);
         }
       });
     });
-  }
-
-  function copyDir(from, to) {
-    fs.mkdir(to, (err) => {
-      if (err) throw err;
-      fs.readdir(from, { withFileTypes: true }, (err, fileNames) => {
-        if (err) throw err;
-        fileNames.forEach((fileName) => {
-          if (fileName.isFile()) {
-            const pathFromFile = path.join(from, fileName.name);
-            const pathToFile = path.join(to, fileName.name);
-            const readFileStream = fs.createReadStream(pathFromFile);
-            const writeFileStream = fs.createWriteStream(pathToFile);
-            readFileStream.pipe(writeFileStream);
-          } else if (fileName.isDirectory()) {
-            if (err) throw err;
-            copyDir(
-              path.join(from, fileName.name),
-              path.join(to, fileName.name),
-            );
-          }
-        });
-      });
-    });
-  }
+  });
 }
 
-project(
-  pathProject,
-  pathForStyle,
-  pathStyle,
-  pathAssetsFrom,
-  pathAssetsTo,
-  pathHtmlFrom,
-  pathHtmlTo,
-  pathComponents,
-);
+function addHTML(components) {
+  const readStream = fs.createReadStream(pathHtmlFrom);
+  const writeStream = fs.createWriteStream(pathHtmlTo);
+  const transformHtml = new stream.Transform({
+    transform(chunk, encoding, cb) {
+      const transformForHtml = chunk
+        .toString()
+        .replace(/{{(\w+)}}/g, (_, component) => {
+          return components[component];
+        });
+      cb(null, transformForHtml);
+    },
+  });
+  readStream.pipe(transformHtml).pipe(writeStream);
+}
+
+function addStyle() {
+  fs.readdir(pathForStyle, { withFileTypes: true }, (err, fileNames) => {
+    if (err) throw err;
+    const writeStream = fs.createWriteStream(pathStyle);
+    fileNames.forEach((fileName) => {
+      const index = fileName.name.indexOf('.');
+      const extentionFile = fileName.name.slice(index + 1);
+      if (fileName.isFile() && extentionFile === 'css') {
+        const readStream = fs.createReadStream(
+          path.resolve(pathForStyle, fileName.name),
+        );
+        readStream.pipe(writeStream);
+      }
+    });
+  });
+}
+
+function copyDir(from, to) {
+  fs.mkdir(to, (err) => {
+    if (err) throw err;
+    fs.readdir(from, { withFileTypes: true }, (err, fileNames) => {
+      if (err) throw err;
+      fileNames.forEach((fileName) => {
+        if (fileName.isFile()) {
+          const pathFromFile = path.resolve(from, fileName.name);
+          const pathToFile = path.resolve(to, fileName.name);
+          const readFileStream = fs.createReadStream(pathFromFile);
+          const writeFileStream = fs.createWriteStream(pathToFile);
+          readFileStream.pipe(writeFileStream);
+        } else if (fileName.isDirectory()) {
+          if (err) throw err;
+          copyDir(
+            path.resolve(from, fileName.name),
+            path.resolve(to, fileName.name),
+          );
+        }
+      });
+    });
+  });
+}
+
+project();

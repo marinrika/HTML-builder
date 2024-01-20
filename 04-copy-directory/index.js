@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const pathFrom = path.join(__dirname, 'files');
-const pathTo = path.join(__dirname, 'files-copy');
+const pathFrom = path.resolve(__dirname, 'files');
+const pathTo = path.resolve(__dirname, 'files-copy');
 
 function copyDir(from, to) {
   fs.access(to, (err) => {
