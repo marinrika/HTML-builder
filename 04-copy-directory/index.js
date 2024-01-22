@@ -21,8 +21,8 @@ function copyDir(from, to) {
         if (err) throw err;
         fileNames.forEach((fileName) => {
           if (fileName.isFile()) {
-            const pathFromFile = path.join(from, fileName.name);
-            const pathToFile = path.join(to, fileName.name);
+            const pathFromFile = path.resolve(from, fileName.name);
+            const pathToFile = path.resolve(to, fileName.name);
             const readFileStream = fs.createReadStream(pathFromFile);
             const writeFileStream = fs.createWriteStream(pathToFile);
             readFileStream.pipe(writeFileStream);
